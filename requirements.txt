@@ -1,0 +1,10 @@
+# Core dependencies for forest-change-framework
+
+# Configuration and data handling
+pyyaml>=6.0
+
+# CLI framework
+click>=8.0
+
+# Type hints compatibility
+typing-extensions>=4.0
