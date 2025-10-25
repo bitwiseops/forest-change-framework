@@ -9,6 +9,7 @@ import click
 import json
 from pathlib import Path
 import sys
+import importlib
 
 from forest_change_framework import (
     BaseFramework,
@@ -20,12 +21,46 @@ from forest_change_framework import (
 from forest_change_framework.utils import setup_logging
 
 
+def discover_components():
+    """
+    Auto-discover and import all components.
+
+    Scans the components directory and imports all component modules,
+    which triggers their @register_component decorators.
+    """
+    components_path = Path(__file__).parent.parent / "components"
+
+    if not components_path.exists():
+        return
+
+    # Iterate through categories (data_ingestion, preprocessing, etc.)
+    for category_dir in components_path.iterdir():
+        if not category_dir.is_dir() or category_dir.name.startswith("_"):
+            continue
+
+        # Iterate through components within each category
+        for component_dir in category_dir.iterdir():
+            if not component_dir.is_dir() or component_dir.name.startswith("_"):
+                continue
+
+            # Try to import the component module
+            try:
+                module_path = f"forest_change_framework.components.{category_dir.name}.{component_dir.name}"
+                importlib.import_module(module_path)
+            except (ImportError, AttributeError) as e:
+                # Component may not have a valid module, skip silently
+                pass
+
+
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--log-file", type=click.Path(), help="Log file path")
 @click.pass_context
 def cli(ctx, verbose, log_file):
     """Forest Change Framework CLI tool."""
+    # Auto-discover components
+    discover_components()
+
     # Setup logging
     import logging
 

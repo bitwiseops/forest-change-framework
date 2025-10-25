@@ -139,3 +139,7 @@ logs/
 *.yaml
 !config/*.json
 !examples/*.json
+!biomes_example.yaml
+
+# AI
+CLAUDE.md
