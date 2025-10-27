@@ -1,3 +1,10 @@
-"""GUI Widgets module."""
+"""GUI Widgets module.
 
-__all__ = []
+Reusable widget components.
+"""
+
+from .log_viewer import LogViewer
+
+__all__ = [
+    "LogViewer",
+]

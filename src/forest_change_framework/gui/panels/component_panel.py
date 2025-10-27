@@ -12,7 +12,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
 
 from forest_change_framework.core.registry import ComponentRegistry
-from ..dialogs import show_config_dialog
+from ..dialogs import show_config_dialog, ExecutionDialog
 
 logger = logging.getLogger(__name__)
 
@@ -260,9 +260,39 @@ class ComponentPanel(QWidget):
         category, comp_name = current_item.data(0, Qt.ItemDataRole.UserRole)
         logger.info(f"Running component: {category}/{comp_name}")
 
-        self.component_executed.emit(category, comp_name)
+        # Check if component is configured
+        if not self._component_config:
+            QMessageBox.warning(
+                self,
+                "Configuration Required",
+                f"Please configure {comp_name} before running.",
+            )
+            return
 
-        # TODO: Execute component
+        try:
+            # Show execution dialog
+            exec_dialog = ExecutionDialog(
+                comp_name,
+                category,
+                self._component_config,
+                parent=self,
+            )
+
+            result = exec_dialog.exec()
+
+            if result == ExecutionDialog.DialogCode.Accepted:
+                logger.info(f"Component {comp_name} executed successfully")
+                self.component_executed.emit(category, comp_name)
+            else:
+                logger.info(f"Component {comp_name} execution cancelled")
+
+        except Exception as e:
+            logger.error(f"Failed to execute component: {e}")
+            QMessageBox.critical(
+                self,
+                "Execution Error",
+                f"Failed to execute component: {e}",
+            )
 
     def get_selected_component(self) -> Optional[tuple]:
         """Get currently selected component.

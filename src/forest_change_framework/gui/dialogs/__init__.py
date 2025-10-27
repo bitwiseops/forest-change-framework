@@ -8,9 +8,12 @@ from .config_dialog import (
     QuickConfigDialog,
     show_config_dialog,
 )
+from .execution_dialog import ExecutionDialog, ProgressDialog
 
 __all__ = [
     "ComponentConfigDialog",
     "QuickConfigDialog",
     "show_config_dialog",
+    "ExecutionDialog",
+    "ProgressDialog",
 ]
