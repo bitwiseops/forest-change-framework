@@ -270,5 +270,38 @@ def info(category, component_name):
         sys.exit(1)
 
 
+@cli.command()
+@click.option(
+    "--theme",
+    type=click.Choice(["light", "dark"]),
+    default="dark",
+    help="GUI theme (light or dark)",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Enable debug logging in GUI",
+)
+def gui(theme, debug):
+    """Launch the Forest Change Framework GUI application."""
+    try:
+        from forest_change_framework.gui.app import ForestChangeApp
+        import sys
+
+        app = ForestChangeApp(theme=theme, debug=debug)
+        sys.exit(app.run())
+
+    except ImportError:
+        click.echo(
+            "✗ GUI dependencies not installed. Install with:\n"
+            "  pip install PyQt6 PyQt6-WebEngine folium matplotlib plotly",
+            err=True,
+        )
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"✗ Failed to launch GUI: {str(e)}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()

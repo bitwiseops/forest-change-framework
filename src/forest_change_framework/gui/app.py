@@ -26,11 +26,18 @@ class ForestChangeApp(QApplication):
     - Main window creation
     """
 
-    def __init__(self, argv: Optional[list] = None):
+    def __init__(
+        self,
+        argv: Optional[list] = None,
+        theme: Optional[str] = None,
+        debug: bool = False,
+    ):
         """Initialize the application.
 
         Args:
             argv: Command line arguments (uses sys.argv if None)
+            theme: Theme to use ("light" or "dark"), overrides config
+            debug: Enable debug logging
         """
         if argv is None:
             argv = sys.argv
@@ -42,9 +49,17 @@ class ForestChangeApp(QApplication):
         self.setApplicationVersion("1.0.0")
         self.setApplicationAuthor("Forest Change Framework Team")
 
+        # Enable debug logging if requested
+        if debug:
+            logging.getLogger("forest_change_framework").setLevel(logging.DEBUG)
+
         # Load configuration
         self.config = GUIConfig()
         self.config.load()
+
+        # Override theme if provided
+        if theme:
+            self.config.set("theme", theme)
 
         # Initialize theme manager
         self.theme_manager = ThemeManager(self)
