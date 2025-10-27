@@ -249,12 +249,8 @@ class AoiSamplerComponent(BaseComponent):
                     from datetime import datetime
 
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    output_file = (
-                        Path.cwd()
-                        / "aoi_samples"
-                        / "aois"
-                        / f"aoi_samples_{timestamp}.geojson"
-                    )
+                    output_dir = self.get_output_dir() / "aois"
+                    output_file = output_dir / f"aoi_samples_{timestamp}.geojson"
                 else:
                     output_file = Path(output_path)
 
@@ -288,8 +284,8 @@ class AoiSamplerComponent(BaseComponent):
                     logger.debug("Step 7: Generating yearly loss maps")
 
                     try:
-                        # Create subfolder named after the GeoJSON file
-                        vis_folder = output_file.parent.parent / "loss_maps" / output_file.stem
+                        # Create subfolder for loss maps within component output directory
+                        vis_folder = self.get_output_dir() / "loss_maps" / output_file.stem
                         year_maps = create_yearly_maps(
                             geojson_data,
                             vis_folder,

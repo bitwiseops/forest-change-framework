@@ -128,8 +128,7 @@ class HansenForestChangeComponent(BaseComponent):
 
         Args:
             config: Configuration dictionary with optional keys:
-                - data_folder: Path to store downloaded tiles (default: "./data/hansen_tiles")
-                - output_folder: Path to write mosaic GeoTIFF files (default: "./data/hansen_output")
+                - data_folder: Path to store downloaded tiles (default: data/<component>/tiles)
                 - version: Hansen dataset version (default: "GFC-2024-v1.12")
                 - timeout: Download timeout in seconds (default: 30)
 
@@ -139,26 +138,25 @@ class HansenForestChangeComponent(BaseComponent):
         self._config = config
 
         # Get configuration values with defaults
-        data_folder = self.get_config("data_folder", "./data/hansen_tiles")
-        output_folder = self.get_config("output_folder", "./data/hansen_output")
         self._version = self.get_config("version", "GFC-2024-v1.12")
         self._timeout = self.get_config("timeout", 30)
 
+        # Use standardized output directory: data/hansen_forest_change/
+        self._output_folder = self.get_output_dir()
+
+        # Data folder for tiles is a subdirectory of output
+        data_folder = self.get_config("data_folder")
+        if data_folder:
+            self._data_folder = Path(data_folder)
+        else:
+            self._data_folder = self._output_folder / "tiles"
+
         # Create data folder if it doesn't exist
-        self._data_folder = Path(data_folder)
         try:
             self._data_folder.mkdir(parents=True, exist_ok=True)
             logger.info(f"Data folder prepared: {self._data_folder}")
         except OSError as e:
-            raise ValueError(f"Cannot create data folder {data_folder}: {str(e)}")
-
-        # Create output folder if it doesn't exist
-        self._output_folder = Path(output_folder)
-        try:
-            self._output_folder.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Output folder prepared: {self._output_folder}")
-        except OSError as e:
-            raise ValueError(f"Cannot create output folder {output_folder}: {str(e)}")
+            raise ValueError(f"Cannot create data folder {self._data_folder}: {str(e)}")
 
         logger.info(
             f"Component initialized with version={self._version}, "

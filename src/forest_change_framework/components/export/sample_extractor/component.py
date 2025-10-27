@@ -140,7 +140,14 @@ class SampleExtractorComponent(BaseComponent):
         })
 
         try:
-            output_dir = Path(self._config["output_dir"])
+            # Use standardized output directory: data/sample_extractor/
+            # Allow override via config if provided
+            output_dir_from_config = self._config.get("output_dir")
+            if output_dir_from_config:
+                output_dir = Path(output_dir_from_config)
+            else:
+                output_dir = self.get_output_dir()
+
             patches_dir = output_dir / "patches"
             patches_dir.mkdir(parents=True, exist_ok=True)
 
