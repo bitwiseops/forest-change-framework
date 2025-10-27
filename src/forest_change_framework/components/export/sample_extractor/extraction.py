@@ -298,19 +298,17 @@ def save_geotiff(
             # Write metadata as tags if provided
             if metadata:
                 tags = {}
-                if "sample_id" in metadata:
-                    tags["SAMPLE_ID"] = str(metadata["sample_id"])
-                if "aoi_id" in metadata:
-                    tags["AOI_ID"] = str(metadata["aoi_id"])
-                if "year" in metadata:
-                    tags["YEAR"] = str(metadata["year"])
-                if "loss_bin" in metadata:
-                    tags["LOSS_BIN"] = str(metadata["loss_bin"])
-                if "loss_percentage" in metadata:
-                    tags["LOSS_PERCENTAGE"] = str(metadata["loss_percentage"])
+                # Add all metadata to tags (TIFF tags have size limits, handled in component)
+                for key, value in metadata.items():
+                    if value is not None:
+                        # Convert key to uppercase and handle special chars
+                        tag_key = str(key).upper().replace("_", "")[:31]  # TIFF tag name limit
+                        tag_value = str(value)
+                        tags[tag_key] = tag_value
 
                 if tags:
                     dst.update_tags(1, **tags)
+                    logger.debug(f"Wrote {len(tags)} metadata tags to TIFF")
 
         logger.info(f"Wrote GeoTIFF: {output_path} (shape={data.shape}, crs={crs})")
 

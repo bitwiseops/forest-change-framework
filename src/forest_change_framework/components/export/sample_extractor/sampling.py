@@ -238,6 +238,8 @@ def create_sample_manifest(selected_aois: Dict[int, Dict[str, List[Dict[str, Any
                     "maxx": maxx,
                     "maxy": maxy,
                     "loss_percentage": float(loss_percentage),
+                    # Include all properties from input for metadata
+                    "input_properties": props,
                 }
 
                 manifest.append(sample)

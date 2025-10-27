@@ -24,6 +24,7 @@ from .extraction import (
     extract_patch_from_vrt,
     save_geotiff,
 )
+from .visualization import create_sample_summary_map
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,9 @@ class SampleExtractorComponent(BaseComponent):
     patches as georeferenced GeoTIFFs with metadata.
 
     Configuration:
-        - aoi_geojson: Path to GeoJSON file from AOI sampler
-        - hansen_vrt: Path to Hansen VRT file or tiles directory
-        - output_dir: Directory for output patches and metadata
+        - aoi_geojson: Path to GeoJSON file from AOI sampler (required)
+        - hansen_vrt: Path to Hansen VRT file or tiles directory (required)
+        - output_dir: Directory for output patches and metadata (optional, uses data/sample_extractor/ if not provided)
         - samples_per_bin: Number of samples per loss bin (default: 10)
         - metadata_format: "csv", "json", or "both" (default: "both")
         - patch_crs: Output CRS for patches (default: "EPSG:4326")
@@ -84,7 +85,7 @@ class SampleExtractorComponent(BaseComponent):
 
     def _validate_config(self) -> None:
         """Validate component configuration."""
-        required = ["aoi_geojson", "hansen_vrt", "output_dir"]
+        required = ["aoi_geojson", "hansen_vrt"]
         for key in required:
             if key not in self._config:
                 raise ValueError(f"Required config parameter missing: {key}")
@@ -203,11 +204,21 @@ class SampleExtractorComponent(BaseComponent):
             metadata_files = self._write_metadata(manifest, output_dir)
             logger.info(f"Wrote metadata files: {metadata_files}")
 
-            # Step 8: Validate (optional)
+            # Step 8: Generate visualization map
+            logger.info("Generating sample location map...")
+            self.publish_event(f"{self.name}.progress", {"step": 8, "message": "Generating map visualization"})
+            map_path = output_dir / "samples_map.png"
+            try:
+                create_sample_summary_map(manifest, str(map_path))
+                logger.info(f"Generated sample location map: {map_path}")
+            except Exception as e:
+                logger.warning(f"Failed to generate map visualization: {e}")
+
+            # Step 9: Validate (optional)
             validation_report = None
             if self._validate_output:
                 logger.info("Validating metadata and patches...")
-                self.publish_event(f"{self.name}.progress", {"step": 8, "message": "Validating metadata"})
+                self.publish_event(f"{self.name}.progress", {"step": 9, "message": "Validating metadata"})
                 validation_report = validate_metadata(manifest, str(patches_dir))
                 logger.info(f"Validation: valid={validation_report['valid']}")
                 if not validation_report["valid"]:
@@ -220,6 +231,7 @@ class SampleExtractorComponent(BaseComponent):
                 "output_dir": str(output_dir),
                 "patches_dir": str(patches_dir),
                 "metadata_files": metadata_files,
+                "map_path": str(map_path),
                 "validation_report": validation_report,
             }
 
@@ -303,7 +315,7 @@ class SampleExtractorComponent(BaseComponent):
                     skipped_samples.append(sample_id)
                     continue
 
-                # Prepare metadata for TIFF tags
+                # Prepare metadata for TIFF tags (include all input properties)
                 tiff_metadata = None
                 if self._include_metadata_in_tiff:
                     tiff_metadata = {
@@ -313,6 +325,15 @@ class SampleExtractorComponent(BaseComponent):
                         "loss_bin": sample["loss_bin"],
                         "loss_percentage": sample["loss_percentage"],
                     }
+                    # Add all input properties (TIFF tags have size limits, so we compress)
+                    if "input_properties" in sample:
+                        input_props = sample["input_properties"]
+                        for key, value in input_props.items():
+                            # Convert to string and limit to reasonable length
+                            if value is not None:
+                                str_val = str(value)
+                                if len(str_val) < 254:  # TIFF tag character limit
+                                    tiff_metadata[f"prop_{key}"] = str_val
 
                 # Save as GeoTIFF
                 output_path = patches_dir / f"{sample_id}.tif"
