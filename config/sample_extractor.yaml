@@ -1,0 +1,26 @@
+# Sample Extractor Component Configuration
+# Extracts TIFF patches from Hansen data based on stratified AOI samples
+
+sample_extractor:
+  # Number of samples to extract per loss bin
+  samples_per_bin: 10
+
+  # Metadata export format: csv, json, or both
+  metadata_format: "both"
+
+  # Output CRS for extracted patches
+  patch_crs: "EPSG:4326"
+
+  # Store metadata in TIFF tags
+  include_metadata_in_tiff: true
+
+  # Validate metadata and patches after extraction
+  validate: true
+
+  # Hansen band to extract (2 = lossyear)
+  # Band 1 = treecover2000
+  # Band 2 = lossyear (default)
+  # Band 3 = datamask
+  band: 2
+
+  enabled: true

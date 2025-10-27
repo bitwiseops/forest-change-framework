@@ -122,6 +122,90 @@ class ConfigManager:
         except yaml.YAMLError as e:
             raise ConfigError(f"Invalid YAML in configuration file: {str(e)}")
 
+    @classmethod
+    def from_config_folder(cls, config_dir: str = "./config") -> "ConfigManager":
+        """
+        Load framework configuration from config/ folder.
+
+        Loads framework.yaml from the config directory.
+
+        Args:
+            config_dir: Path to config directory (default: "./config")
+
+        Returns:
+            ConfigManager instance.
+
+        Raises:
+            ConfigError: If config folder doesn't exist or framework.yaml is missing/invalid.
+
+        Example:
+            >>> config = ConfigManager.from_config_folder()
+            >>> config.get("framework.verbose")
+        """
+        config_path = os.path.join(config_dir, "framework.yaml")
+        if not os.path.exists(config_dir):
+            raise ConfigError(
+                f"Configuration folder not found: {config_dir}\n"
+                f"Please create {config_dir} folder with required YAML files"
+            )
+
+        if not os.path.exists(config_path):
+            raise ConfigError(
+                f"Framework configuration not found: {config_path}\n"
+                f"Please create {config_path} with framework settings"
+            )
+
+        try:
+            config = cls.from_yaml(config_path)
+            logger.info(f"Framework configuration loaded from {config_path}")
+            return config
+        except ConfigError:
+            raise
+
+    @classmethod
+    def from_component_config(
+        cls, component_name: str, config_dir: str = "./config"
+    ) -> "ConfigManager":
+        """
+        Load component configuration from config/ folder.
+
+        Loads <component_name>.yaml from the config directory.
+
+        Args:
+            component_name: Name of the component (e.g., "hansen", "aoi_sampler")
+            config_dir: Path to config directory (default: "./config")
+
+        Returns:
+            ConfigManager instance with component config.
+
+        Raises:
+            ConfigError: If config folder doesn't exist or component config is missing/invalid.
+
+        Example:
+            >>> config = ConfigManager.from_component_config("hansen")
+            >>> config.get("hansen.version")
+        """
+        config_path = os.path.join(config_dir, f"{component_name}.yaml")
+
+        if not os.path.exists(config_dir):
+            raise ConfigError(
+                f"Configuration folder not found: {config_dir}\n"
+                f"Please create {config_dir} folder with required YAML files"
+            )
+
+        if not os.path.exists(config_path):
+            raise ConfigError(
+                f"Component configuration not found: {config_path}\n"
+                f"Please create {config_path} with {component_name} settings"
+            )
+
+        try:
+            config = cls.from_yaml(config_path)
+            logger.info(f"Component '{component_name}' configuration loaded from {config_path}")
+            return config
+        except ConfigError:
+            raise
+
     def get(self, key: str, default: Any = None) -> Any:
         """
         Get a configuration value by key.

@@ -7,11 +7,13 @@ registration, configuration, initialization, and execution.
 
 from typing import Any, Dict, Optional, Type
 import logging
+import os
+from pathlib import Path
 
 from .registry import ComponentRegistry, get_registry
 from .config import ConfigManager
 from .events import EventBus
-from .exceptions import ComponentError, FrameworkError
+from .exceptions import ComponentError, FrameworkError, ConfigError
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,7 @@ class BaseFramework:
     - Configuration management
     - Event bus for inter-component communication
     - Component initialization and execution
+    - Directory structure validation (config/ must exist, data/ auto-created)
 
     Attributes:
         registry: The component registry.
@@ -32,19 +35,89 @@ class BaseFramework:
         config: The framework configuration.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        config_dir: str = "./config",
+        data_dir: str = "./data",
+    ) -> None:
         """
         Initialize the framework.
 
         Args:
-            config: Initial framework configuration dictionary.
+            config: Initial framework configuration dictionary (optional).
+            config_dir: Path to config directory (default: "./config").
+                Must exist with framework.yaml and component-specific YAML files.
+            data_dir: Path to data directory (default: "./data").
+                Auto-created if missing.
+
+        Raises:
+            ConfigError: If config directory doesn't exist or framework.yaml is missing.
         """
         self.registry = get_registry()
         self.event_bus = EventBus()
-        self.config = ConfigManager.from_dict(config or {})
+        self._config_dir = config_dir
+        self._data_dir = data_dir
+
+        # Validate and setup directories
+        self._validate_and_setup_directories()
+
+        # Load framework config from config folder (unless custom config provided)
+        if config:
+            self.config = ConfigManager.from_dict(config)
+            logger.info("BaseFramework initialized with custom configuration")
+        else:
+            try:
+                self.config = ConfigManager.from_config_folder(config_dir)
+                logger.info("BaseFramework initialized with config from folder")
+            except ConfigError as e:
+                logger.error(f"Framework initialization failed: {str(e)}")
+                raise
+
         self._components: Dict[str, Any] = {}
 
-        logger.info("BaseFramework initialized")
+        logger.info(
+            f"BaseFramework initialized. "
+            f"Config dir: {self._config_dir}, Data dir: {self._data_dir}"
+        )
+
+    def _validate_and_setup_directories(self) -> None:
+        """
+        Validate and setup required directories.
+
+        Requirements:
+        - config/ folder must exist (fail if missing) with framework.yaml
+        - data/ folder will be auto-created if missing
+
+        Raises:
+            ConfigError: If config directory doesn't exist or framework.yaml is missing.
+        """
+        # Validate config directory exists
+        if not os.path.exists(self._config_dir):
+            raise ConfigError(
+                f"Configuration directory not found: {self._config_dir}\n"
+                f"Please create '{self._config_dir}' folder with:\n"
+                f"  - {self._config_dir}/framework.yaml (required)\n"
+                f"  - {self._config_dir}/<component_name>.yaml for each component"
+            )
+
+        # Validate framework.yaml exists
+        framework_config_path = os.path.join(self._config_dir, "framework.yaml")
+        if not os.path.exists(framework_config_path):
+            raise ConfigError(
+                f"Framework configuration not found: {framework_config_path}\n"
+                f"Please create {framework_config_path} with framework settings"
+            )
+
+        # Auto-create data directory if missing
+        data_path = Path(self._data_dir)
+        try:
+            data_path.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Data directory ensured: {self._data_dir}")
+        except OSError as e:
+            raise FrameworkError(
+                f"Failed to create data directory {self._data_dir}: {str(e)}"
+            )
 
     def get_component_class(self, category: str, name: str) -> Type:
         """
@@ -89,7 +162,9 @@ class BaseFramework:
         try:
             component_class = self.get_component_class(category, name)
             instance = component_class(
-                event_bus=self.event_bus, config=instance_config or {}
+                event_bus=self.event_bus,
+                config=instance_config or {},
+                output_base_dir=self._data_dir,
             )
 
             # Initialize the component

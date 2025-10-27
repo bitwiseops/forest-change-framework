@@ -1,0 +1,99 @@
+# Hansen Forest Change Data Ingestion Configuration
+# All configurable parameters and biome/region definitions
+
+hansen:
+  # Data storage paths
+  data_folder: "./data/hansen_tiles"
+  output_folder: "./data/hansen_output"
+
+  # Hansen dataset version (used in GCS URL)
+  # GCS_BASE_URL = "https://storage.googleapis.com/earthenginepartners-hansen"
+  # Downloads from: {GCS_BASE_URL}/{version}/{layer}.txt
+  version: "GFC-2024-v1.12"
+
+  # Network configuration
+  timeout: 30
+
+  # Biome and region definitions
+  # Used to enrich AOI samples with biome/region metadata
+  # Each biome contains regional boundaries with weights
+  biomes:
+    - name: "Tropical Rainforest"
+      percentage: 30.0
+      tree_cover_min: 70.0
+      min_distance_km: 30.0
+      regions:
+        - name: "Amazon Basin"
+          weight: 0.5
+          bbox: [-75, -15, -50, 5]
+        - name: "Congo Basin"
+          weight: 0.3
+          bbox: [10, -5, 30, 5]
+        - name: "Borneo"
+          weight: 0.2
+          bbox: [109, -4, 119, 7]
+
+    - name: "Tropical Dry Forest"
+      percentage: 15.0
+      tree_cover_min: 50.0
+      min_distance_km: 25.0
+      regions:
+        - name: "Cerrado Brazil"
+          weight: 0.4
+          bbox: [-55, -20, -45, -10]
+        - name: "Miombo Africa"
+          weight: 0.35
+          bbox: [20, -15, 35, -5]
+
+    - name: "Temperate Forest"
+      percentage: 20.0
+      tree_cover_min: 60.0
+      min_distance_km: 20.0
+      regions:
+        - name: "Eastern US"
+          weight: 0.4
+          bbox: [-95, 30, -75, 45]
+        - name: "Central Europe"
+          weight: 0.35
+          bbox: [5, 45, 20, 55]
+
+    - name: "Boreal Forest"
+      percentage: 20.0
+      tree_cover_min: 50.0
+      min_distance_km: 25.0
+      regions:
+        - name: "Canada"
+          weight: 0.4
+          bbox: [-130, 50, -95, 65]
+        - name: "Scandinavia"
+          weight: 0.3
+          bbox: [10, 58, 30, 70]
+
+    - name: "Mediterranean Forest"
+      percentage: 10.0
+      tree_cover_min: 40.0
+      min_distance_km: 15.0
+      regions:
+        - name: "Mediterranean Basin"
+          weight: 0.5
+          bbox: [-5, 35, 15, 45]
+        - name: "California"
+          weight: 0.3
+          bbox: [-123, 34, -118, 40]
+
+    - name: "Mangroves"
+      percentage: 5.0
+      tree_cover_min: 30.0
+      min_distance_km: 10.0
+      regions:
+        - name: "Sundarbans"
+          weight: 0.4
+          bbox: [88, 21, 90, 23]
+        - name: "Amazon Delta"
+          weight: 0.3
+          bbox: [-50, -2, -48, 2]
+        - name: "Southeast Asia"
+          weight: 0.3
+          bbox: [100, 0, 110, 10]
+
+  enabled: true

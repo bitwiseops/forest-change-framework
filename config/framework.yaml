@@ -1,0 +1,22 @@
+# Forest Change Framework Configuration
+# This is the main framework configuration file
+
+# Framework-level settings
+framework:
+  # Enable verbose logging
+  verbose: false
+
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: INFO
+
+  # Auto-create output directories
+  auto_create_directories: true
+
+# Data directory configuration
+# The data/ directory will be automatically created if missing
+# Each component will create its own subdirectory: data/<component_name>/
+data:
+  base_dir: "./data"
+
+# Component configurations are loaded from separate YAML files
+# config/<component_name>.yaml

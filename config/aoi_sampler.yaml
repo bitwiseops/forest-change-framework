@@ -1,0 +1,43 @@
+# AOI Sampler Component Configuration
+# Samples areas of interest from Hansen VRT data
+
+aoi_sampler:
+  # Grid cell size in kilometers
+  grid_cell_size_km: 1.0
+
+  # Minimum data validity threshold (0-100%)
+  # AOIs with data validity below this are excluded
+  min_validity_threshold: 80.0
+
+  # Loss category bins for stratified sampling
+  # Samples are stratified by these categories
+  loss_bins:
+    - name: "no_loss"
+      min: 0.0
+      max: 5.0
+    - name: "low_loss"
+      min: 5.0
+      max: 15.0
+    - name: "medium_loss"
+      min: 15.0
+      max: 30.0
+    - name: "high_loss"
+      min: 30.0
+      max: 100.0
+
+  # Include per-year loss breakdown in output
+  include_loss_by_year: true
+
+  # Keep AOIs that fail validity checks (marked as invalid)
+  keep_invalid_aois: false
+
+  # Output format: geojson or json
+  output_format: "geojson"
+
+  # Generate visualization maps
+  create_visualizations: false
+
+  # Map visualization resolution in DPI
+  visualization_dpi: 150
+
+  enabled: true

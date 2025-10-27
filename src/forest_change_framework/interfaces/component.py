@@ -8,6 +8,7 @@ to participate in the framework.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 import logging
+from pathlib import Path
 
 from ..core.events import EventBus
 
@@ -27,7 +28,10 @@ class BaseComponent(ABC):
     """
 
     def __init__(
-        self, event_bus: EventBus, config: Optional[Dict[str, Any]] = None
+        self,
+        event_bus: EventBus,
+        config: Optional[Dict[str, Any]] = None,
+        output_base_dir: str = "./data",
     ) -> None:
         """
         Initialize the component.
@@ -35,9 +39,11 @@ class BaseComponent(ABC):
         Args:
             event_bus: The central event bus for inter-component communication.
             config: Configuration dictionary for this component instance.
+            output_base_dir: Base directory for component outputs (default: "./data").
         """
         self.event_bus = event_bus
         self._config = config or {}
+        self._output_base_dir = output_base_dir
         logger.debug(f"Component {self.__class__.__name__} initialized")
 
     @abstractmethod
@@ -199,3 +205,42 @@ class BaseComponent(ABC):
                 return default
 
         return value
+
+    def get_output_dir(self, create: bool = True) -> Path:
+        """
+        Get the component's standardized output directory.
+
+        Components use data/<component_name>/ as their output root.
+        This method returns that path, optionally creating it if missing.
+
+        Args:
+            create: Whether to create the directory if missing (default: True).
+
+        Returns:
+            Path object pointing to data/<component_name>/.
+
+        Example:
+            >>> output_dir = self.get_output_dir()
+            >>> output_file = output_dir / "results.json"
+        """
+        output_dir = Path(self._output_base_dir) / self.name
+
+        if create:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Output directory ensured: {output_dir}")
+
+        return output_dir
+
+    @property
+    def output_base_dir(self) -> str:
+        """
+        Get the base output directory for all components.
+
+        Returns:
+            Path to the base data directory (default: "./data").
+
+        Example:
+            >>> base_dir = self.output_base_dir
+            >>> print(base_dir)  # "./data"
+        """
+        return self._output_base_dir
