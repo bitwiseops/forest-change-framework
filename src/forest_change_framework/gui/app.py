@@ -47,7 +47,11 @@ class ForestChangeApp(QApplication):
         # Configure application
         self.setApplicationName("Forest Change Framework")
         self.setApplicationVersion("1.0.0")
-        self.setApplicationAuthor("Forest Change Framework Team")
+        # setApplicationAuthor not available in all PyQt6 versions
+        try:
+            self.setApplicationAuthor("Forest Change Framework Team")
+        except AttributeError:
+            pass
 
         # Enable debug logging if requested
         if debug:

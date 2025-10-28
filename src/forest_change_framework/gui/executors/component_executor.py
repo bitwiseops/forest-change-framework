@@ -64,7 +64,7 @@ class ExecutionWorker(QObject):
             framework = BaseFramework(output_base_dir=output_base_dir or "./data")
 
             # Get component class
-            comp_class = self.registry.get_component(category, component_name)
+            comp_class = self.registry.get(category, component_name)
             if not comp_class:
                 raise ValueError(
                     f"Component not found: {category}/{component_name}"

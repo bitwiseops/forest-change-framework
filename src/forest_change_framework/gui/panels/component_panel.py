@@ -1,20 +1,55 @@
 """Component panel - displays available components."""
 
 import logging
+import importlib
+from pathlib import Path
 from typing import Optional, Dict, List
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QTreeWidget,
     QTreeWidgetItem, QPushButton, QLabel, QTextEdit, QSplitter,
-    QMessageBox
+    QMessageBox, QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QStyle as QWidgetStyle
 
-from forest_change_framework.core.registry import ComponentRegistry
+from forest_change_framework.core.registry import get_registry
 from ..dialogs import show_config_dialog, ExecutionDialog
 
 logger = logging.getLogger(__name__)
+
+
+def _discover_components():
+    """Auto-discover and import all components."""
+    try:
+        import forest_change_framework.components
+        components_path = Path(forest_change_framework.components.__file__).parent
+
+        if not components_path.exists():
+            return
+
+        # Iterate through categories (data_ingestion, preprocessing, etc.)
+        for category_dir in components_path.iterdir():
+            if not category_dir.is_dir() or category_dir.name.startswith("_"):
+                continue
+
+            # Iterate through components within each category
+            for component_dir in category_dir.iterdir():
+                if not component_dir.is_dir() or component_dir.name.startswith("_"):
+                    continue
+
+                # Try to import the component module
+                try:
+                    module_path = (
+                        f"forest_change_framework.components."
+                        f"{category_dir.name}.{component_dir.name}"
+                    )
+                    importlib.import_module(module_path)
+                except (ImportError, AttributeError):
+                    pass
+    except Exception as e:
+        logger.error(f"Failed to discover components: {e}")
 
 
 class ComponentPanel(QWidget):
@@ -38,7 +73,11 @@ class ComponentPanel(QWidget):
         """
         super().__init__(parent)
 
-        self.registry = ComponentRegistry()
+        # Discover components first (imports all component modules)
+        _discover_components()
+
+        # Get the global registry (which now has all components registered)
+        self.registry = get_registry()
         self._component_config: Optional[Dict] = None
         self._selected_component: Optional[tuple] = None
         self._setup_ui()
@@ -85,12 +124,17 @@ class ComponentPanel(QWidget):
         # Action buttons
         button_layout = QHBoxLayout()
 
+        # Get application style for standard icons
+        app_style = QApplication.style()
+
         self.configure_btn = QPushButton("Configure")
+        self.configure_btn.setIcon(app_style.standardIcon(QWidgetStyle.StandardPixmap.SP_DialogYesButton))
         self.configure_btn.setEnabled(False)
         self.configure_btn.clicked.connect(self._configure_component)
         button_layout.addWidget(self.configure_btn)
 
         self.run_btn = QPushButton("Run")
+        self.run_btn.setIcon(app_style.standardIcon(QWidgetStyle.StandardPixmap.SP_MediaPlay))
         self.run_btn.setEnabled(False)
         self.run_btn.clicked.connect(self._run_component)
         button_layout.addWidget(self.run_btn)
@@ -111,8 +155,12 @@ class ComponentPanel(QWidget):
                 "export"
             ]
 
+            total_components = 0
             for category in categories:
-                components = self.registry.list_components(category).get(category, {})
+                components_dict = self.registry.list_components(category)
+                components = components_dict.get(category, [])  # It's a list, not a dict!
+
+                logger.debug(f"Category {category}: {len(components)} components: {components}")
 
                 if components:
                     # Create category item
@@ -122,14 +170,17 @@ class ComponentPanel(QWidget):
                     self.tree.addTopLevelItem(category_item)
 
                     # Add components to category
-                    for comp_name in sorted(components.keys()):
+                    for comp_name in sorted(components):
                         comp_item = QTreeWidgetItem()
                         comp_item.setText(0, comp_name)
                         comp_item.setData(0, Qt.ItemDataRole.UserRole, (category, comp_name))
                         category_item.addChild(comp_item)
+                        total_components += 1
+
+            logger.info(f"Loaded {total_components} components")
 
         except Exception as e:
-            logger.error(f"Failed to load components: {e}")
+            logger.error(f"Failed to load components: {e}", exc_info=True)
 
     def _filter_components(self, search_text: str) -> None:
         """Filter components based on search text.
@@ -137,7 +188,7 @@ class ComponentPanel(QWidget):
         Args:
             search_text: Search query
         """
-        search_text = search_text.lower()
+        search_text = search_text.lower().strip()
 
         # Iterate through all items
         for i in range(self.tree.topLevelItemCount()):
@@ -148,8 +199,12 @@ class ComponentPanel(QWidget):
                 child_item = category_item.child(j)
                 component_name = child_item.text(0)
 
-                # Show if matches search
-                matches = search_text in component_name.lower()
+                # Show if matches search (empty search shows all)
+                if search_text == "":
+                    matches = True
+                else:
+                    matches = search_text in component_name.lower()
+
                 child_item.setHidden(not matches)
 
                 if matches:
@@ -174,7 +229,7 @@ class ComponentPanel(QWidget):
 
         try:
             # Get component info
-            comp_class = self.registry.get_component(category, comp_name)
+            comp_class = self.registry.get(category, comp_name)
             component = comp_class(None)
 
             # Display component details
@@ -211,7 +266,7 @@ class ComponentPanel(QWidget):
 
         try:
             # Get component info
-            comp_class = self.registry.get_component(category, comp_name)
+            comp_class = self.registry.get(category, comp_name)
             component = comp_class(None)
 
             # Get component metadata

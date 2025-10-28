@@ -286,12 +286,11 @@ def gui(theme, debug):
     """Launch the Forest Change Framework GUI application."""
     try:
         from forest_change_framework.gui.app import ForestChangeApp
-        import sys
 
         app = ForestChangeApp(theme=theme, debug=debug)
         sys.exit(app.run())
 
-    except ImportError:
+    except ImportError as e:
         click.echo(
             "✗ GUI dependencies not installed. Install with:\n"
             "  pip install PyQt6 PyQt6-WebEngine folium matplotlib plotly",

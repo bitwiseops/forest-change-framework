@@ -5,13 +5,13 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt6.QtGui import QIcon, QPixmap, QColor
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtWidgets import QMessageBox, QApplication, QStyle
 
 logger = logging.getLogger(__name__)
 
 
 def create_icon(name: str, size: int = 24, color: Optional[QColor] = None) -> QIcon:
-    """Create an icon from built-in resources or generate a placeholder.
+    """Create an icon from resources or standard application icons.
 
     Args:
         name: Icon name (without extension)
@@ -21,13 +21,32 @@ def create_icon(name: str, size: int = 24, color: Optional[QColor] = None) -> QI
     Returns:
         QIcon object
     """
-    # Try to load from resources
+    # Try to load from resources first
     icon_path = Path(__file__).parent / "resources" / "icons" / f"{name}.svg"
-
     if icon_path.exists():
         return QIcon(str(icon_path))
 
-    # Return placeholder icon
+    # Map icon names to standard application icons
+    icon_map = {
+        "new": QStyle.StandardPixmap.SP_FileDialogDetailedView,
+        "open": QStyle.StandardPixmap.SP_DialogOpenButton,
+        "save": QStyle.StandardPixmap.SP_DialogSaveButton,
+        "play": QStyle.StandardPixmap.SP_MediaPlay,
+        "stop": QStyle.StandardPixmap.SP_MediaStop,
+        "delete": QStyle.StandardPixmap.SP_TrashIcon,
+        "refresh": QStyle.StandardPixmap.SP_BrowserReload,
+        "config": QStyle.StandardPixmap.SP_FileDialogDetailedView,
+        "settings": QStyle.StandardPixmap.SP_FileDialogDetailedView,
+    }
+
+    # Use standard application icon if available
+    if name in icon_map and QApplication.instance():
+        try:
+            return QApplication.style().standardIcon(icon_map[name])
+        except Exception:
+            pass
+
+    # Fallback: Return placeholder icon
     pixmap = QPixmap(size, size)
     pixmap.fill(QColor(128, 128, 128) if color is None else color)
     return QIcon(pixmap)
