@@ -1,0 +1,26 @@
+# Dataset Organizer Component Configuration
+# Organizes satellite imagery into ML training datasets with spatial splits
+
+dataset_organizer:
+  # Train/Validation/Test split percentages
+  # Must sum to 100%
+  train_percentage: 70.0
+  val_percentage: 15.0
+  test_percentage: 15.0
+
+  # Spatial tile size in degrees for train/val/test assignment
+  # Uses geographic tiling to prevent spatial data leakage
+  # Example: 1.0 = 1°×1° tiles
+  spatial_tile_size_deg: 1.0
+
+  # Output image format for organized dataset:
+  # - "png": Smaller files, suitable for deep learning
+  # - "geotiff": Preserves geospatial metadata
+  # - "both": Save both formats
+  image_format: "png"
+
+  # Generate metadata CSV with sample information
+  # CSV includes: sample_id, split, pre_path, post_path, label_path, year, bbox, etc.
+  create_metadata_csv: true
+
+  enabled: true

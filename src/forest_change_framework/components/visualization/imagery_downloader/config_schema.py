@@ -1,0 +1,83 @@
+"""Configuration schema for imagery_downloader component."""
+
+# This file can be imported by GUI schema definitions
+# to make the component configurable via the GUI
+
+IMAGERY_DOWNLOADER_CONFIG_SCHEMA = {
+    "component_name": "imagery_downloader",
+    "category": "visualization",
+    "fields": [
+        {
+            "name": "aoi_geojson",
+            "type": "str",
+            "label": "AOI GeoJSON File",
+            "description": "Path to GeoJSON file from sample_extractor",
+            "required": True,
+            "widget_type": "file",
+            "file_filter": "GeoJSON Files (*.geojson);;JSON Files (*.json)",
+            "group": "Input",
+        },
+        {
+            "name": "cloud_cover_threshold",
+            "type": "int",
+            "label": "Cloud Cover Threshold (%)",
+            "description": "Maximum cloud cover percentage to accept",
+            "required": False,
+            "default": 30,
+            "min_value": 0,
+            "max_value": 100,
+            "group": "Sentinel-2 Settings",
+        },
+        {
+            "name": "initial_date_range",
+            "type": "int",
+            "label": "Initial Date Range (±days)",
+            "description": "Initial ±days around target date to search",
+            "required": False,
+            "default": 30,
+            "min_value": 1,
+            "max_value": 180,
+            "group": "Sentinel-2 Settings",
+        },
+        {
+            "name": "max_date_range",
+            "type": "int",
+            "label": "Max Date Range (±days)",
+            "description": "Maximum ±days to expand search if no imagery found",
+            "required": False,
+            "default": 90,
+            "min_value": 1,
+            "max_value": 365,
+            "group": "Sentinel-2 Settings",
+        },
+        {
+            "name": "reproject_to_crs",
+            "type": "str",
+            "label": "Output CRS",
+            "description": "Target coordinate reference system for output imagery",
+            "required": False,
+            "default": "EPSG:4326",
+            "group": "Output Settings",
+        },
+        {
+            "name": "bands",
+            "type": "list",
+            "label": "Sentinel-2 Bands",
+            "description": "Bands to download: B2 (Blue), B3 (Green), B4 (Red), B8 (NIR), etc.",
+            "required": False,
+            "default": ["B4", "B3", "B2"],
+            "group": "Sentinel-2 Settings",
+        },
+        {
+            "name": "output_format",
+            "type": "list",
+            "label": "Output Formats",
+            "description": "Save as GeoTIFF (metadata) and/or PNG (ML training)",
+            "required": False,
+            "default": ["geotiff", "png"],
+            "choices": ["geotiff", "png"],
+            "widget_type": "multi_select",
+            "group": "Output Settings",
+        },
+    ],
+}

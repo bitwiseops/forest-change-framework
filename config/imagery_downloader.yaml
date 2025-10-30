@@ -1,0 +1,31 @@
+# Imagery Downloader Component Configuration
+# Downloads Sentinel-2 satellite imagery from Google Earth Engine
+
+imagery_downloader:
+  # Maximum cloud cover percentage to accept (0-100)
+  cloud_cover_threshold: 30
+
+  # Initial ±days around target date to search
+  initial_date_range: 30
+
+  # Maximum ±days to expand search if no imagery found
+  # Date range expansion: try ±30, then ±60, then ±90 days
+  max_date_range: 90
+
+  # Output coordinate reference system
+  reproject_to_crs: "EPSG:4326"
+
+  # Sentinel-2 bands to download
+  # RGB: [B4, B3, B2] = Red, Green, Blue
+  # NDVI: [B8, B4] = NIR, Red
+  bands:
+    - B4  # Red
+    - B3  # Green
+    - B2  # Blue
+
+  # Output formats: geotiff (preserves metadata), png (ML training), or both
+  output_format:
+    - geotiff
+    - png
+
+  enabled: true
