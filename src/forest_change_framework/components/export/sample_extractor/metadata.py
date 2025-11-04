@@ -106,7 +106,9 @@ def write_metadata_csv(manifest_list: List[Dict[str, Any]], output_path: str) ->
     logger.info(f"Wrote {len(manifest_list)} samples to CSV: {output_path}")
 
 
-def write_metadata_json(manifest_list: List[Dict[str, Any]], output_path: str, patches_dir: str = "patches") -> None:
+def write_metadata_json(
+    manifest_list: List[Dict[str, Any]], output_path: str, patches_dir: str = "patches"
+) -> None:
     """
     Write sample manifest to JSON file.
 
@@ -131,6 +133,92 @@ def write_metadata_json(manifest_list: List[Dict[str, Any]], output_path: str, p
         json.dump(metadata, f, indent=2)
 
     logger.info(f"Wrote {len(manifest_list)} samples to JSON: {output_path}")
+
+
+def write_samples_geojson(manifest_list: List[Dict[str, Any]], output_path: str) -> None:
+    """
+    Write sample manifest to GeoJSON file with complete metadata preservation.
+
+    Creates a GeoJSON FeatureCollection where each sample is a Feature with:
+    - geometry: Polygon from bbox coordinates
+    - properties: Complete metadata including all input_properties for the year
+
+    This GeoJSON is suitable for input to downstream components like imagery_downloader.
+
+    Args:
+        manifest_list: List of sample dicts from create_sample_manifest()
+        output_path: Path where GeoJSON will be written
+
+    Raises:
+        IOError: If file cannot be written
+
+    Example:
+        >>> manifest = [...]
+        >>> write_samples_geojson(manifest, "samples.geojson")
+    """
+    features = []
+
+    for sample in manifest_list:
+        sample_id = sample.get("sample_id")
+        minx = sample.get("minx")
+        miny = sample.get("miny")
+        maxx = sample.get("maxx")
+        maxy = sample.get("maxy")
+
+        # Create polygon geometry from bbox
+        coordinates = [[
+            [minx, miny],  # bottom-left
+            [maxx, miny],  # bottom-right
+            [maxx, maxy],  # top-right
+            [minx, maxy],  # top-left
+            [minx, miny],  # close polygon
+        ]]
+
+        # Build properties with core metadata + all input properties
+        properties = {
+            "sample_id": sample_id,
+            "aoi_id": sample.get("aoi_id"),
+            "year": sample.get("year"),
+            "loss_bin": sample.get("loss_bin"),
+            "loss_percentage": sample.get("loss_percentage"),
+            "minx": minx,
+            "miny": miny,
+            "maxx": maxx,
+            "maxy": maxy,
+            "tiff_path": f"patches/{sample_id}.tif",
+        }
+
+        # Add all input properties (metadata from the year)
+        input_props = sample.get("input_properties", {})
+        if input_props:
+            properties.update(input_props)
+
+        # Create feature
+        feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": coordinates,
+            },
+            "properties": properties,
+        }
+
+        features.append(feature)
+
+    # Create FeatureCollection
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features,
+    }
+
+    # Write to file
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_file, "w") as f:
+        json.dump(geojson, f, indent=2)
+
+    logger.info(f"Wrote {len(features)} samples to GeoJSON: {output_path}")
 
 
 def validate_metadata(

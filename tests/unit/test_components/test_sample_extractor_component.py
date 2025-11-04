@@ -313,9 +313,11 @@ class TestSampleExtractorComponentMetadataFormats:
             })
             files = component._write_metadata(manifest, output_dir)
 
-            assert len(files) == 1
-            assert files[0].endswith("samples_metadata.csv")
-            assert Path(files[0]).exists()
+            # GeoJSON is always written, plus CSV when metadata_format includes csv
+            assert len(files) == 2
+            assert any(f.endswith("samples_metadata.csv") for f in files)
+            assert any(f.endswith("samples.geojson") for f in files)
+            assert all(Path(f).exists() for f in files)
 
     def test_write_metadata_json_only(self, event_bus):
         """Test writing JSON metadata only."""
@@ -349,9 +351,11 @@ class TestSampleExtractorComponentMetadataFormats:
             })
             files = component._write_metadata(manifest, output_dir)
 
-            assert len(files) == 1
-            assert files[0].endswith("samples_metadata.json")
-            assert Path(files[0]).exists()
+            # GeoJSON is always written, plus JSON when metadata_format includes json
+            assert len(files) == 2
+            assert any(f.endswith("samples_metadata.json") for f in files)
+            assert any(f.endswith("samples.geojson") for f in files)
+            assert all(Path(f).exists() for f in files)
 
     def test_write_metadata_both(self, event_bus):
         """Test writing both CSV and JSON metadata."""
@@ -387,9 +391,12 @@ class TestSampleExtractorComponentMetadataFormats:
             })
             files = component._write_metadata(manifest, output_dir)
 
-            assert len(files) == 2
+            # GeoJSON is always written, plus CSV and JSON when metadata_format is both
+            assert len(files) == 3
             assert any(f.endswith("samples_metadata.csv") for f in files)
             assert any(f.endswith("samples_metadata.json") for f in files)
+            assert any(f.endswith("samples.geojson") for f in files)
+            assert all(Path(f).exists() for f in files)
 
 
 class TestSampleExtractorComponentCleanup:

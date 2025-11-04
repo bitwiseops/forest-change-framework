@@ -3,7 +3,7 @@
 import logging
 import json
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
 try:
@@ -12,10 +12,149 @@ try:
     from rasterio.io import MemoryFile
     from rasterio.warp import calculate_default_transform, reproject, Resampling
     import numpy as np
+    import requests
 except ImportError:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def save_imagery(
+    image: "ee.Image",
+    output_dir: Path,
+    imagery_type: str,
+    output_formats: List[str],
+    target_crs: str = "EPSG:4326",
+    scale: int = 10,
+) -> Dict[str, str]:
+    """
+    Download image from Google Earth Engine and save to disk.
+
+    Handles downloading a Sentinel-2 image from GEE and saving as both
+    GeoTIFF (preserves metadata) and PNG (for visualization/ML).
+
+    Args:
+        image: ee.Image to download
+        output_dir: Output directory for saved files
+        imagery_type: Type of imagery ("pre" or "post") for naming
+        output_formats: List of output formats ["geotiff", "png"]
+        target_crs: Target CRS for output (default EPSG:4326)
+        scale: Resolution in meters (default 10 for Sentinel-2)
+
+    Returns:
+        Dictionary mapping format to file path {geotiff: str, png: str, ...}
+
+    Raises:
+        ImportError: If required dependencies not available
+        RuntimeError: If download fails
+        IOError: If file writing fails
+    """
+    try:
+        from io import BytesIO
+        from PIL import Image
+    except ImportError:
+        raise ImportError("PIL required for imagery saving. Install with: pip install Pillow")
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    result = {}
+
+    try:
+        # Get geometry from image
+        geometry = image.geometry()
+
+        # Prepare download URL
+        download_params = {
+            "scale": scale,
+            "crs": target_crs,
+            "fileFormat": "GeoTIFF",
+            "region": geometry,
+        }
+
+        url = image.getDownloadURL(download_params)
+        logger.info(f"Downloading {imagery_type} imagery: {url[:80]}...")
+
+        # Download the GeoTIFF with timeout
+        response = requests.get(url, timeout=300)
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Download failed with status {response.status_code}: {response.text[:200]}"
+            )
+
+        geotiff_data = BytesIO(response.content)
+        geotiff_bytes = geotiff_data.getvalue()
+
+        # Save GeoTIFF if requested
+        if "geotiff" in output_formats:
+            geotiff_path = output_dir / f"{imagery_type}.tif"
+            with open(geotiff_path, "wb") as f:
+                f.write(geotiff_bytes)
+            logger.info(f"Saved GeoTIFF: {geotiff_path}")
+            result["geotiff"] = str(geotiff_path)
+
+        # Save PNG if requested
+        if "png" in output_formats:
+            png_path = output_dir / f"{imagery_type}.png"
+
+            try:
+                # Read GeoTIFF from memory and create PNG
+                with MemoryFile(geotiff_bytes) as memfile:
+                    with memfile.open() as src:
+                        # Read first 3 bands for RGB
+                        try:
+                            if src.count >= 3:
+                                # Read as float for normalization
+                                r = src.read(1).astype(np.float32)
+                                g = src.read(2).astype(np.float32)
+                                b = src.read(3).astype(np.float32)
+                            else:
+                                # Fallback: repeat first band
+                                band = src.read(1).astype(np.float32)
+                                r = g = b = band
+
+                            # Normalize each band to 0-255
+                            def normalize_band(band_data):
+                                band_min = np.nanmin(band_data)
+                                band_max = np.nanmax(band_data)
+                                if band_max == band_min:
+                                    return np.zeros_like(band_data, dtype=np.uint8)
+                                normalized = (band_data - band_min) / (band_max - band_min)
+                                return (normalized * 255).astype(np.uint8)
+
+                            r_norm = normalize_band(r)
+                            g_norm = normalize_band(g)
+                            b_norm = normalize_band(b)
+
+                            # Stack into RGB
+                            rgb = np.dstack([r_norm, g_norm, b_norm])
+
+                            # Save with PIL
+                            img = Image.fromarray(rgb, mode="RGB")
+                            img.save(png_path)
+
+                            logger.info(f"Saved PNG: {png_path}")
+                            result["png"] = str(png_path)
+
+                        except Exception as e:
+                            logger.warning(f"Failed to create PNG from bands: {e}")
+                            # Try to save grayscale from first band as fallback
+                            try:
+                                band1 = src.read(1).astype(np.uint8)
+                                img = Image.fromarray(band1, mode="L")
+                                img.save(png_path)
+                                logger.info(f"Saved grayscale PNG: {png_path}")
+                                result["png"] = str(png_path)
+                            except Exception as e2:
+                                logger.warning(f"Failed to create grayscale PNG: {e2}")
+
+            except Exception as e:
+                logger.warning(f"Failed to create PNG: {e}")
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error saving imagery: {e}", exc_info=True)
+        raise
 
 
 def download_image(
@@ -180,22 +319,23 @@ def clip_to_bbox(
         return False
 
 
-def save_metadata(output_dir: Path, metadata: Dict) -> bool:
+def save_metadata(metadata: Dict, output_path) -> bool:
     """
     Save metadata as JSON file.
 
     Args:
-        output_dir: Output directory
         metadata: Metadata dictionary
+        output_path: Path to output JSON file
 
     Returns:
         True if successful
     """
     try:
-        metadata_path = output_dir / "metadata.json"
-        with open(metadata_path, "w") as f:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w") as f:
             json.dump(metadata, f, indent=2, default=str)
-        logger.info(f"Saved metadata to {metadata_path}")
+        logger.info(f"Saved metadata to {output_path}")
         return True
     except Exception as e:
         logger.error(f"Error saving metadata: {e}")
@@ -221,7 +361,6 @@ def generate_thumbnail(
         True if successful, False otherwise
     """
     try:
-        import matplotlib.pyplot as plt
         from PIL import Image
 
         with rasterio.open(input_path) as src:

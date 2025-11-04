@@ -18,6 +18,7 @@ from .metadata import (
     validate_metadata,
     write_metadata_csv,
     write_metadata_json,
+    write_samples_geojson,
     print_validation_report,
 )
 from .extraction import (
@@ -390,6 +391,12 @@ class SampleExtractorComponent(BaseComponent):
             write_metadata_json(manifest, str(json_path), patches_dir="patches")
             metadata_files.append(str(json_path))
             logger.info(f"Wrote JSON metadata: {json_path}")
+
+        # Always write GeoJSON with complete metadata for downstream components
+        geojson_path = output_dir / "samples.geojson"
+        write_samples_geojson(manifest, str(geojson_path))
+        metadata_files.append(str(geojson_path))
+        logger.info(f"Wrote GeoJSON with complete metadata: {geojson_path}")
 
         return metadata_files
 

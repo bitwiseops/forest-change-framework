@@ -4,7 +4,6 @@ import logging
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
-from datetime import datetime, timedelta
 
 try:
     import ee
@@ -22,7 +21,10 @@ logger = logging.getLogger(__name__)
     category="visualization",
     name="imagery_downloader",
     version="1.0.0",
-    description="Download Sentinel-2 satellite imagery from Google Earth Engine for forest change samples",
+    description=(
+        "Download Sentinel-2 satellite imagery from Google Earth Engine "
+        "for forest change samples"
+    ),
     metadata={
         "author": "Forest Change Framework",
         "tags": ["sentinel-2", "google-earth-engine", "satellite-imagery", "forest-change"],
@@ -56,9 +58,10 @@ class ImageryDownloaderComponent(BaseComponent):
         self,
         event_bus: Any,
         config: Optional[Dict[str, Any]] = None,
+        output_base_dir: str = "./data",
     ) -> None:
         """Initialize the imagery downloader component."""
-        super().__init__(event_bus, config)
+        super().__init__(event_bus, config, output_base_dir)
 
         # Configuration parameters
         self._aoi_geojson: Optional[str] = None

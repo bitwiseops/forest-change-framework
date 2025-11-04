@@ -65,19 +65,21 @@ def calculate_pre_post_dates(
 
 
 def query_sentinel2_scenes(
-    bbox: Dict[str, float],
+    bbox,
     start_date: datetime,
     end_date: datetime,
     cloud_cover_threshold: int = 30,
+    bands: Optional[List[str]] = None,
 ) -> Optional[ee.Image]:
     """
     Query Google Earth Engine for Sentinel-2 scenes.
 
     Args:
-        bbox: Bounding box {'minx': float, 'miny': float, 'maxx': float, 'maxy': float}
+        bbox: Bounding box as list [minx, miny, maxx, maxy] or dict with minx/miny/maxx/maxy keys
         start_date: Start date for search
         end_date: End date for search
         cloud_cover_threshold: Maximum cloud cover percentage (0-100)
+        bands: List of band names to select (optional, selects all if None)
 
     Returns:
         Best ee.Image match or None if nothing found
@@ -86,10 +88,19 @@ def query_sentinel2_scenes(
         raise ImportError("earthengine-api not available")
 
     try:
+        # Convert list bbox to dict if needed
+        if isinstance(bbox, list):
+            minx, miny, maxx, maxy = bbox
+        else:
+            minx = bbox["minx"]
+            miny = bbox["miny"]
+            maxx = bbox["maxx"]
+            maxy = bbox["maxy"]
+
         # Create geometry from bbox
         geometry = ee.Geometry.Rectangle([
-            bbox["minx"], bbox["miny"],
-            bbox["maxx"], bbox["maxy"]
+            minx, miny,
+            maxx, maxy
         ])
 
         # Query Sentinel-2 collection
@@ -110,6 +121,10 @@ def query_sentinel2_scenes(
         # Check if image exists
         if image.getInfo() is None:
             return None
+
+        # Select bands if specified
+        if bands:
+            image = image.select(bands)
 
         return image
 

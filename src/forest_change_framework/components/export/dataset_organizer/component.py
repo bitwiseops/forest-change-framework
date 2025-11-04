@@ -52,9 +52,10 @@ class DatasetOrganizerComponent(BaseComponent):
         self,
         event_bus: Any,
         config: Optional[Dict[str, Any]] = None,
+        output_base_dir: str = "./data",
     ) -> None:
         """Initialize the dataset organizer component."""
-        super().__init__(event_bus, config)
+        super().__init__(event_bus, config, output_base_dir)
 
         # Configuration parameters
         self._imagery_directory: Optional[Path] = None

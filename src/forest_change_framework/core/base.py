@@ -188,7 +188,8 @@ class BaseFramework:
             category: The component category.
             name: The component name.
             *args: Positional arguments to pass to component's execute method.
-            **kwargs: Keyword arguments to pass to component's execute method.
+            **kwargs: Keyword arguments. First, tries to extract component-specific config
+                     based on component name. Remaining kwargs passed to execute().
 
         Returns:
             The component's execution result.
@@ -201,7 +202,10 @@ class BaseFramework:
             >>> result = framework.execute_component("analysis", "my_analyzer", data=input_data)
         """
         try:
-            component = self.instantiate_component(category, name)
+            # Extract component-specific config from kwargs if present
+            instance_config = kwargs.pop(name, {})
+
+            component = self.instantiate_component(category, name, instance_config)
             result = component.execute(*args, **kwargs)
 
             # Cleanup

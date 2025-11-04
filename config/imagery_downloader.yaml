@@ -2,6 +2,9 @@
 # Downloads Sentinel-2 satellite imagery from Google Earth Engine
 
 imagery_downloader:
+  # Path to GeoJSON file from sample_extractor
+  aoi_geojson: "data/sample_extractor/samples.geojson"
+
   # Maximum cloud cover percentage to accept (0-100)
   cloud_cover_threshold: 30
 
