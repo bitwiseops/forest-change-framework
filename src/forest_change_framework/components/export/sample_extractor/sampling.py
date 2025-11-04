@@ -218,11 +218,27 @@ def create_sample_manifest(selected_aois: Dict[int, Dict[str, List[Dict[str, Any
                 props = feature.get("properties", {})
                 geometry = feature.get("geometry", {})
 
-                # Extract bbox from properties
+                # Extract bbox from properties or geometry
                 minx = props.get("minx")
                 miny = props.get("miny")
                 maxx = props.get("maxx")
                 maxy = props.get("maxy")
+
+                # If bbox not in properties, extract from geometry
+                if minx is None or miny is None or maxx is None or maxy is None:
+                    if geometry.get("type") == "Polygon":
+                        coords = geometry.get("coordinates", [[]])[0]
+                        if coords:
+                            xs = [c[0] for c in coords]
+                            ys = [c[1] for c in coords]
+                            minx = min(xs)
+                            miny = min(ys)
+                            maxx = max(xs)
+                            maxy = max(ys)
+                    elif geometry.get("type") == "Point":
+                        x, y = geometry.get("coordinates", [None, None])
+                        minx = maxx = x
+                        miny = maxy = y
 
                 # Get loss for this specific year
                 loss_by_year = props.get("loss_by_year", {})
