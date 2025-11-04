@@ -2,8 +2,17 @@
 # Extracts TIFF patches from Hansen data based on stratified AOI samples
 
 sample_extractor:
-  # Number of samples to extract per loss bin
-  samples_per_bin: 10
+  # Input: AOI GeoJSON from aoi_sampler with loss_by_year data
+  aoi_geojson: './data/aoi_sampler/aois/aoi_samples_20251027_180952.geojson'
+
+  # Input: Hansen VRT containing forest loss year data
+  hansen_vrt: './data/hansen_output/hansen_mosaic_20251025_195510.vrt'
+
+  # Output directory for samples, metadata, and visualizations
+  output_dir: './data/sample_extractor_output'
+
+  # Number of samples to extract per loss bin (no_loss, low, medium, high)
+  samples_per_bin: 5
 
   # Metadata export format: csv, json, or both
   metadata_format: "both"

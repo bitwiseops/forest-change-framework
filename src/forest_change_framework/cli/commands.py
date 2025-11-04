@@ -172,18 +172,35 @@ def run(ctx, category, component_name, config):
     try:
         framework = BaseFramework()
 
-        # Load component config if provided
+        # Load component config
         component_config = {}
-        if config:
+        config_path = config
+
+        # If no config provided, try to auto-load from config directory
+        if not config_path:
+            from pathlib import Path
+            default_config_paths = [
+                Path(f"./config/{component_name}.yaml"),
+                Path(f"./config/{component_name}.yml"),
+                Path(f"./config/{component_name}.json"),
+            ]
+            for path in default_config_paths:
+                if path.exists():
+                    config_path = str(path)
+                    click.echo(f"📋 Auto-loaded config: {config_path}")
+                    break
+
+        # Load the config file
+        if config_path:
             try:
-                if config.endswith(".json"):
-                    with open(config) as f:
+                if config_path.endswith(".json"):
+                    with open(config_path) as f:
                         component_config = json.load(f)
-                elif config.endswith(".yaml") or config.endswith(".yml"):
+                elif config_path.endswith(".yaml") or config_path.endswith(".yml"):
                     try:
                         import yaml
 
-                        with open(config) as f:
+                        with open(config_path) as f:
                             component_config = yaml.safe_load(f)
                     except ImportError:
                         click.echo("PyYAML required for YAML config", err=True)
@@ -191,6 +208,11 @@ def run(ctx, category, component_name, config):
             except Exception as e:
                 click.echo(f"✗ Error loading config: {str(e)}", err=True)
                 sys.exit(1)
+        else:
+            click.echo(
+                f"ℹ️  No config found. Create ./config/{component_name}.yaml or use --config",
+                err=True,
+            )
 
         # Execute component
         click.echo(f"🚀 Running {category}/{component_name}...")
