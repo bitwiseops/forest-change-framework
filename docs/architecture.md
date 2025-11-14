@@ -422,8 +422,145 @@ Integration Tests
 └── Configuration loading
 ```
 
+## Example: Dataset Organizer Component Architecture
+
+The **dataset_organizer** component demonstrates advanced patterns for organizing satellite imagery into ML training datasets while preventing geographic data leakage.
+
+### Spatial Tiling Strategy
+
+The component uses a geographic tiling approach to prevent data leakage:
+
+```
+Geographic Space with Sample Distribution:
+┌────────────────────────────────────────┐
+│ Latitude                               │
+│  ▲                                     │
+│  │    Tile [0,1]    Tile [1,1]        │
+│  │    ┌──────────┬──────────┐         │
+│  │    │          │          │         │
+│  │    │ Train    │ Train    │         │
+│  │    │ (18 🟦)  │          │         │
+│  │    ├──────────┼──────────┤         │
+│  │    │ Tile     │ Tile     │         │
+│  │    │ [0,0]    │ [1,0]    │         │
+│  │    │          │          │         │
+│  │    │ Val (5)  │ Test (7) │         │
+│  │    │          │          │         │
+│  │    └──────────┴──────────┘         │
+│  │                                    │
+│  └────────────────────────────────────→ Longitude
+└────────────────────────────────────────┘
+
+Algorithm:
+1. Create grid: 1° × 1° tiles (configurable)
+2. Assign samples: Each sample → tile based on bbox center
+3. Deterministic hash: Same tile ID always gets same split
+4. Result: Geographic coherence, no spatial leakage
+```
+
+### Component Structure
+
+```
+DatasetOrganizerComponent
+├── DatasetOrganizer (Core logic)
+│   ├── create_split_directories() → Create train/val/test
+│   ├── create_sample_triplet() → Link pre/post/label files
+│   └── validate_triplets() → Verify completeness
+│
+├── SpatialTileGrid (Spatial splitting)
+│   ├── add_sample() → Assign sample to tile
+│   ├── generate_splits() → Assign tiles to splits
+│   └── get_statistics() → Report tile distribution
+│
+├── SplitValidator (Quality control)
+│   └── validate_splits() → Check split percentages
+│
+└── MetadataGenerator (Output metadata)
+    └── generate_csv() → Create training metadata
+```
+
+### Data Flow
+
+```
+Imagery Directory          Patches Directory
+(from imagery_downloader)  (from sample_extractor)
+        │                          │
+        ├─ {sample_id}/           ├─ {sample_id}.tif
+        │  ├─ metadata.json       │
+        │  ├─ pre.png             │
+        │  └─ post.png            │
+        │                          │
+        └──────────────┬───────────┘
+                       │
+                       ↓
+        ┌──────────────────────────────┐
+        │ DatasetOrganizerComponent    │
+        │                              │
+        │ 1. Read sample metadata      │
+        │ 2. Apply spatial tiling      │
+        │ 3. Assign to splits          │
+        │ 4. Organize triplets         │
+        │ 5. Generate metadata CSV     │
+        │                              │
+        └──────────────┬───────────────┘
+                       │
+                       ↓
+        Dataset Output Directory
+        ├── train/
+        │   ├── {sample_id}/
+        │   │   ├── pre.png
+        │   │   ├── post.png
+        │   │   └── label.tif
+        │   └── ... (18 samples)
+        ├── val/
+        │   └── ... (5 samples)
+        ├── test/
+        │   └── ... (7 samples)
+        └── metadata.csv
+```
+
+### Testing Architecture
+
+The component includes 58 tests organized by abstraction level:
+
+```
+Test Pyramid:
+            ┌─────────────────┐
+            │ Real Data Tests │  (6 tests)
+            │ With actual     │
+            │ sample_extractor│
+            │ output          │
+            ├─────────────────┤
+            │ Integration     │  (11 tests)
+            │ Tests with      │
+            │ mock data       │
+            ├─────────────────┤
+            │ Unit Tests      │  (41 tests)
+            │ Tile algorithm, │
+            │ file operations │
+            │ validation      │
+            └─────────────────┘
+
+Coverage by Module:
+- splitter.py:        100% (27 tests)
+- organizer.py:       89% (14 tests)
+- component.py:       84% (11 tests)
+- Total:              87.5% (52 tests)
+```
+
+### Key Design Decisions
+
+1. **Spatial Tiling**: Prevents geographic correlation in train/val/test
+2. **Deterministic Splits**: Same tile always gets same split (reproducible)
+3. **Flexible Formats**: Supports PNG, GeoTIFF, or mixed formats
+4. **Comprehensive Validation**: Checks triplet completeness and percentages
+5. **Metadata Tracking**: CSV with full file paths and sample metadata
+
+See [Testing Guide](testing.md) for detailed test documentation.
+
 ## See Also
 
 - [Component Categories](component-categories.md)
 - [Getting Started](getting-started.md)
+- [Testing Guide](testing.md)
 - [API Reference](api/)

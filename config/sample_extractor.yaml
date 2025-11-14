@@ -6,13 +6,15 @@ sample_extractor:
   aoi_geojson: './data/aoi_sampler/aois/aoi_samples_20251027_180952.geojson'
 
   # Input: Hansen VRT containing forest loss year data
-  hansen_vrt: './data/hansen_output/hansen_mosaic_20251025_195510.vrt'
+  # Use the South American version with 10S/20S tiles
+  hansen_vrt: './data/hansen_output/hansen_mosaic_20251025_192143.vrt'
 
   # Output directory for samples, metadata, and visualizations
   output_dir: './data/sample_extractor_output'
 
   # Number of samples to extract per loss bin (no_loss, low, medium, high)
-  samples_per_bin: 5
+  # 20 per bin = 80 total samples for better year distribution
+  samples_per_bin: 20
 
   # Metadata export format: csv, json, or both
   metadata_format: "both"

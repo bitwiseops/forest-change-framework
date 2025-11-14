@@ -379,12 +379,33 @@ Run it:
 python pipeline_example.py
 ```
 
+## Testing Your Components
+
+The framework includes comprehensive testing examples. To test the dataset organizer component with real data:
+
+```bash
+# Run real-world dataset organizer tests
+pytest tests/integration/test_dataset_organizer_real_data.py -v -s
+
+# Run all tests with coverage
+make test-cov
+
+# Run specific test
+pytest tests/integration/test_dataset_organizer_real_data.py::TestDatasetOrganizerWithRealSamples::test_organize_real_samples_end_to_end -v -s
+```
+
+The test suite includes:
+- **Unit tests** for spatial tile algorithm
+- **Integration tests** with mock and real data
+- **End-to-end tests** using sample_extractor output
+
 ## Next Steps
 
 1. **Read the [Architecture Documentation](architecture.md)** to understand the framework design
 2. **Explore [Component Categories](component-categories.md)** to learn about each type
 3. **Review [Examples](../examples/)** for more complex workflows
 4. **Check the [API Documentation](api/)** for complete reference
+5. **Run the tests** to see the framework in action: `make test`
 
 ## Troubleshooting
 

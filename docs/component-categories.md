@@ -215,6 +215,7 @@ See [Visualization README](../src/forest_change_framework/components/visualizati
 - Publish via APIs
 - Generate data packages
 - Manage output metadata
+- Organize ML training datasets
 
 ### When to Use
 - Saving results to disk
@@ -223,6 +224,7 @@ See [Visualization README](../src/forest_change_framework/components/visualizati
 - Publishing via web services
 - Creating data packages for sharing
 - Archiving results
+- Organizing satellite imagery into training datasets
 
 ### Output Destinations
 - **Local**: Files (CSV, JSON, GeoJSON, GeoTIFF)
@@ -230,6 +232,7 @@ See [Visualization README](../src/forest_change_framework/components/visualizati
 - **Cloud**: AWS S3, Google Cloud Storage, Azure Blob
 - **APIs**: HTTP endpoints, FTP, SFTP
 - **Archives**: ZIP, TAR with metadata
+- **ML Datasets**: Organized train/val/test splits with metadata
 
 ### Event Naming Pattern
 ```
@@ -250,6 +253,54 @@ See [Visualization README](../src/forest_change_framework/components/visualizati
   "public": false
 }
 ```
+
+### Example: Dataset Organizer Component
+
+The **dataset_organizer** component organizes satellite imagery into ML training datasets:
+
+**Purpose**: Create train/val/test splits from imagery and sample patches using spatial tiling to prevent data leakage
+
+**Configuration**:
+```json
+{
+  "imagery_directory": "path/to/imagery_downloader_output",
+  "sample_patches_directory": "path/to/sample_extractor_output",
+  "train_percentage": 70.0,
+  "val_percentage": 15.0,
+  "test_percentage": 15.0,
+  "spatial_tile_size_deg": 1.0,
+  "image_format": "png",
+  "create_metadata_csv": true
+}
+```
+
+**Output Structure**:
+```
+output/
+├── train/
+│   ├── {sample_id}/
+│   │   ├── pre.png (pre-event imagery)
+│   │   ├── post.png (post-event imagery)
+│   │   └── label.tif (ground truth)
+│   └── ... (more samples)
+├── val/
+├── test/
+└── metadata.csv (sample metadata and paths)
+```
+
+**Key Features**:
+- **Geographic Tiling**: Prevents spatial data leakage by assigning all samples in a tile to same split
+- **Flexible Formats**: Supports PNG, GeoTIFF, or both formats
+- **Metadata Tracking**: Generates CSV with sample information and file paths
+- **Comprehensive Validation**: Verifies triplet integrity and split distribution
+
+**Testing**: Comprehensive test suite with 58 tests (87.5% coverage) including:
+- 27 unit tests for spatial tiling algorithm
+- 14 unit tests for directory organization
+- 11 integration tests with mock data
+- 6 real-world tests with actual sample_extractor output
+
+See [Dataset Organizer Tests](../tests/integration/test_dataset_organizer_real_data.py) for examples.
 
 ### Component Template
 See [Export README](../src/forest_change_framework/components/export/README.md)

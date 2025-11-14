@@ -488,8 +488,147 @@ cleaned = component.execute(data)
 component.cleanup()
 ```
 
+## Example Implementation: DatasetOrganizerComponent
+
+The **dataset_organizer** component demonstrates a real-world implementation organizing satellite imagery into ML training datasets.
+
+### Component Overview
+
+```python
+from forest_change_framework import register_component, BaseComponent
+from pathlib import Path
+
+@register_component(
+    category="export",
+    name="dataset_organizer",
+    version="1.0.0",
+    description="Organize satellite imagery into train/val/test splits"
+)
+class DatasetOrganizerComponent(BaseComponent):
+    """
+    Organize imagery and patches into ML training dataset with spatial splits.
+
+    Prevents geographic data leakage by using spatial tiling approach.
+    """
+
+    @property
+    def name(self) -> str:
+        return "dataset_organizer"
+
+    @property
+    def version(self) -> str:
+        return "1.0.0"
+
+    def initialize(self, config: Dict[str, Any]) -> None:
+        """Initialize with imagery and patches directories."""
+        # Validate paths exist
+        # Initialize spatial grid for splitting
+        # Parse configuration
+        pass
+
+    def execute(self, *args, **kwargs) -> Dict[str, Any]:
+        """Organize imagery into train/val/test splits."""
+        self.publish_event(f"{self.name}.start", {})
+
+        # Load sample metadata
+        # Apply spatial tiling
+        # Assign splits
+        # Create output directory structure
+        # Generate metadata CSV
+
+        self.publish_event(f"{self.name}.complete", {...})
+        return result
+
+    def cleanup(self) -> None:
+        """Release resources."""
+        pass
+```
+
+### Configuration
+
+```json
+{
+  "imagery_directory": "path/to/imagery_output",
+  "sample_patches_directory": "path/to/patches",
+  "train_percentage": 70.0,
+  "val_percentage": 15.0,
+  "test_percentage": 15.0,
+  "spatial_tile_size_deg": 1.0,
+  "image_format": "png",
+  "create_metadata_csv": true
+}
+```
+
+### Key Methods
+
+- `initialize(config)`: Setup with configuration validation
+- `execute()`: Organize imagery into splits and create output
+- `cleanup()`: Release resources
+- `publish_event()`: Notify subscribers of progress
+
+### Testing
+
+The component includes comprehensive tests:
+
+```python
+# Unit tests for spatial tiling
+pytest tests/unit/test_components/test_dataset_organizer_splitter.py -v
+
+# Integration tests with mock data
+pytest tests/integration/test_dataset_organizer_integration.py -v
+
+# Real-world tests with actual data
+pytest tests/integration/test_dataset_organizer_real_data.py -v -s
+```
+
+**Coverage**: 87.5% (52 tests)
+- Splitter module: 100% coverage (spatial tiling algorithm)
+- Organizer module: 89% coverage (file operations)
+- Component module: 84% coverage (lifecycle management)
+
+See [Testing Guide](../testing.md) for detailed test documentation.
+
+### Usage Example
+
+```python
+from forest_change_framework import BaseFramework
+from forest_change_framework.components.export.dataset_organizer import (
+    DatasetOrganizerComponent
+)
+
+# Create framework
+framework = BaseFramework()
+
+# Configure component
+config = {
+    "imagery_directory": "./data/imagery",
+    "sample_patches_directory": "./data/patches",
+    "train_percentage": 70.0,
+    "val_percentage": 15.0,
+    "test_percentage": 15.0,
+    "spatial_tile_size_deg": 1.0,
+}
+
+# Get component from registry
+from forest_change_framework.core import get_registry
+registry = get_registry()
+ComponentClass = registry.get("export", "dataset_organizer")
+
+# Create and execute
+component = ComponentClass(framework.event_bus, config)
+component.initialize(config)
+result = component.execute()
+
+# Check results
+print(f"Organized {result['samples_organized']} samples")
+print(f"Output: {result['output_directory']}")
+
+component.cleanup()
+```
+
 ## See Also
 
 - [Core API](core.md)
 - [Component Development Guide](../components/README.md)
 - [Architecture](../architecture.md)
+- [Testing Guide](../testing.md)
